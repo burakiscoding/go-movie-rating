@@ -62,3 +62,47 @@ func (s UserStore) GetUserByEmail(email string) (types.User, error) {
 
 	return user, nil
 }
+
+func (s UserStore) GetRatings(userId string) ([]types.MovieRatingOfUser, error) {
+	var ratings []types.MovieRatingOfUser
+	query := `SELECT r.id, r.movie_id, r.rating, r.comment, m.name 
+FROM movie_ratings r 
+INNER JOIN movies m ON m.id=r.movie_id 
+WHERE r.user_id = ?`
+	rows, err := s.db.Query(query, userId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var r types.MovieRatingOfUser
+		if err := rows.Scan(&r.Id, &r.MovieId, &r.Rating, &r.Comment, &r.MovieName); err != nil {
+			return nil, err
+		}
+		ratings = append(ratings, r)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return ratings, nil
+}
+
+func (s UserStore) GetProfile(id string) (types.Profile, error) {
+	var p types.Profile
+	if err := s.db.QueryRow("SELECT first_name, last_name, about_me FROM profiles WHERE user_id = ?", id).Scan(&p.FirstName, &p.LastName, &p.AboutMe); err != nil {
+		return types.Profile{}, err
+	}
+
+	return p, nil
+}
+
+func (s UserStore) UpdateProfile(id, firstName, lastName, aboutMe string) error {
+	if _, err := s.db.Exec("UPDATE profiles SET first_name = ?, last_name = ?, about_me = ? WHERE user_id = ?", firstName, lastName, aboutMe, id); err != nil {
+		return err
+	}
+
+	return nil
+}

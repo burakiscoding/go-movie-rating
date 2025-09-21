@@ -7,7 +7,6 @@ import (
 
 	"github.com/burakiscoding/go-movie-rating/db"
 	"github.com/burakiscoding/go-movie-rating/handlers"
-	"github.com/burakiscoding/go-movie-rating/middleware"
 	"github.com/burakiscoding/go-movie-rating/stores"
 )
 
@@ -27,15 +26,23 @@ func main() {
 	userHandler := handlers.NewUserHandler(userStore)
 
 	router := http.NewServeMux()
+
 	router.HandleFunc("GET /movies", movieHandler.GetAll)
 	router.HandleFunc("GET /movies/{id}", movieHandler.GetById)
+	router.HandleFunc("POST /movies/{id}/upload", movieHandler.UploadFile)
+	router.HandleFunc("GET /movies/{id}/media/{name}", movieHandler.GetFile)
+	router.HandleFunc("POST /movies/{id}/ratings", handlers.IsAuthenticated(movieHandler.AddRating))
+	router.HandleFunc("GET /movies/{id}/ratings", movieHandler.GetRatings)
 
-	router.HandleFunc("POST /signUp", userHandler.SignUp)
-	router.HandleFunc("POST /signIn", userHandler.SignIn)
+	router.HandleFunc("POST /user/signUp", userHandler.SignUp)
+	router.HandleFunc("POST /user/signIn", userHandler.SignIn)
+	router.HandleFunc("GET /user/profile", handlers.IsAuthenticated(userHandler.GetProfile))
+	router.HandleFunc("PUT /user/profile", handlers.IsAuthenticated(userHandler.UpdateProfile))
+	router.HandleFunc("GET /user/ratings", handlers.IsAuthenticated(userHandler.GetRatings))
 
 	server := http.Server{
 		Addr:    ":8080",
-		Handler: middleware.Logging(router),
+		Handler: router,
 	}
 
 	fmt.Println("Server listening on port 8080")

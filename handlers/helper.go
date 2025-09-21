@@ -1,53 +1,120 @@
 package handlers
 
 import (
-	"fmt"
-	"os"
-	"time"
+	"encoding/json"
+	"io"
+	"log/slog"
+	"mime/multipart"
+	"net/http"
 
-	"github.com/burakiscoding/go-movie-rating/types"
-	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
-func CreateToken(id string) (string, error) {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub": id,
-		"iss": "movie-rating",
-		"exp": time.Now().Add(time.Minute * 15).Unix(),
-		"iat": time.Now().Unix(),
-	})
+type FileType uint8
 
-	return token.SignedString([]byte(os.Getenv("JWTSECRET")))
+const (
+	Image FileType = iota
+	Video
+)
+
+var acceptableFileCategories = map[uint8]FileType{
+	0: Image, // Normal image
+	1: Video, // Normal video
+	2: Image, // Poster of the movie, main image on frontend
+	3: Video, // Trailer of the movie, main video on frontend
 }
 
-func VerifyToken(tokenString string) (types.TokenPayload, error) {
-	token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
-		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("Invalid signing method")
-		}
-		return []byte(os.Getenv("JWTSECRET")), nil
-	})
+var acceptableContentTypes = map[string]FileType{
+	"image/jpeg": Image,
+	"image/png":  Image,
+	"image/webp": Image,
+	"video/mp4":  Video,
+	// "video/avi": Video,
+	// "video/webm": Video,
+}
 
+// Checks the file's content type and category
+// Returns true if content type and category is acceptable
+func IsFileAcceptable(file multipart.File, category uint8) bool {
+	// Read first 512 bytes to understand content type
+	contentData := make([]byte, 512)
+	if _, err := file.Read(contentData); err != nil {
+		return false
+	}
+
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		return false
+	}
+
+	// Check content type
+	contentType := http.DetectContentType(contentData)
+	ft1, ok := acceptableContentTypes[contentType]
+	if !ok {
+		return false
+	}
+
+	// Check category
+	ft2, ok := acceptableFileCategories[category]
+	if !ok {
+		return false
+	}
+
+	// Matches file type and category
+	// You can't upload an image as a trailer. Images can be poster or normal image.
+	if ft1 != ft2 {
+		return false
+	}
+
+	return true
+}
+
+func writeJSON(w http.ResponseWriter, code int, data any) {
+	encoded, err := json.Marshal(data)
 	if err != nil {
-		return types.TokenPayload{}, fmt.Errorf("Invalid token")
+		slog.Error(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
-	if !token.Valid {
-		return types.TokenPayload{}, fmt.Errorf("Invalid token")
-	}
+	w.Header().Add("Content-Type", "application/json")
+	w.WriteHeader(code)
+	w.Write(encoded)
+}
 
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		return types.TokenPayload{}, fmt.Errorf("Invalid token")
-	}
+func WriteOK(w http.ResponseWriter, data any) {
+	writeJSON(w, http.StatusOK, data)
+}
 
-	id, ok := claims["sub"].(string)
-	if !ok {
-		return types.TokenPayload{}, fmt.Errorf("Invalid token")
-	}
+func WriteError(w http.ResponseWriter, code int, message string) {
+	writeJSON(w, code, map[string]string{"error": message})
+}
 
-	return types.TokenPayload{Id: id}, nil
+func WriteForbidden(w http.ResponseWriter) {
+	WriteError(w, http.StatusForbidden, "Forbidden action")
+}
+
+func WriteUnauthorized(w http.ResponseWriter) {
+	WriteError(w, http.StatusUnauthorized, "Unauthenticated user")
+}
+
+func WriteNotFound(w http.ResponseWriter) {
+	WriteError(w, http.StatusNotFound, "Requested resource not found")
+}
+
+func WriteBadRequest(w http.ResponseWriter, err error) {
+	WriteError(w, http.StatusBadRequest, err.Error())
+}
+
+func WriteServerError(w http.ResponseWriter, err error) {
+	WriteError(w, http.StatusInternalServerError, err.Error())
+}
+
+func WriteFailedValidation(w http.ResponseWriter, err error) {
+	WriteError(w, http.StatusUnprocessableEntity, err.Error())
+}
+
+func WriteLargeRequestError(w http.ResponseWriter) {
+	WriteError(w, http.StatusRequestEntityTooLarge, "Request entity too large")
 }
 
 func HashPassword(password string) (string, error) {

@@ -43,7 +43,7 @@ func (s MovieStore) GetAll() ([]types.Movie, error) {
 
 func (s MovieStore) GetById(id int) (types.MovieDetail, error) {
 	var movie types.MovieDetail
-	query := `SELECT movies.id, movies.name, 
+	query := `SELECT movies.id, movies.name, movies.release_date, movies.duration_in_minutes, movies.rating, movies.description,
 (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', id, 'name', name)) 
 FROM
 (SELECT DISTINCT genres.id, genres.name
@@ -57,7 +57,7 @@ FROM
 (SELECT DISTINCT movie_medias.name, movie_medias.type 
 FROM movie_medias WHERE movie_medias.movie_id=movies.id) AS t3) AS medias
 FROM movies WHERE id = ?`
-	if err := s.db.QueryRow(query, id).Scan(&movie.Id, &movie.Name, &movie.Genres, &movie.Actors, &movie.Medias); err != nil {
+	if err := s.db.QueryRow(query, id).Scan(&movie.Id, &movie.Name, &movie.ReleaseDate, &movie.DurationInMinutes, &movie.Rating, &movie.Description, &movie.Genres, &movie.Actors, &movie.Medias); err != nil {
 		return types.MovieDetail{}, err
 	}
 

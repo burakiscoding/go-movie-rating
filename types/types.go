@@ -28,12 +28,29 @@ type Actor struct {
 type MovieDetail struct {
 	Id                int             `json:"id"`
 	Name              string          `json:"name"`
+	Description       string          `json:"description"`
 	Rating            float64         `json:"rating"`
 	ReleaseDate       time.Time       `json:"releaseDate"`
 	DurationInMinutes time.Duration   `json:"durationInMinutes"`
 	Genres            json.RawMessage `json:"genres"`
 	Actors            json.RawMessage `json:"actors"`
 	Medias            json.RawMessage `json:"medias"`
+}
+
+type MovieDetailResBody struct {
+	Id                int             `json:"id"`
+	Name              string          `json:"name"`
+	Rating            float64         `json:"rating"`
+	ReleaseDate       time.Time       `json:"releaseDate"`
+	DurationInMinutes time.Duration   `json:"durationInMinutes"`
+	Genres            json.RawMessage `json:"genres"`
+	Actors            json.RawMessage `json:"actors"`
+	Medias            []Media         `json:"medias"`
+}
+
+type Media struct {
+	Name     string `json:"name"`
+	Category uint8  `json:"type"`
 }
 
 type AuthReqBody struct {
@@ -67,7 +84,7 @@ type MovieRating struct {
 
 type AddRatingBody struct {
 	Rating  float64 `json:"rating" validate:"required,min=1,max=10"`
-	Comment string  `json:"comment" validate:"max=255"`
+	Comment string  `json:"comment" validate:"required,max=255"`
 }
 
 type UpdateProfileBody struct {

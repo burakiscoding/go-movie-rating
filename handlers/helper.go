@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"mime/multipart"
@@ -66,6 +67,10 @@ func IsFileAcceptable(file multipart.File, category uint8) bool {
 	}
 
 	return true
+}
+
+func CreateImagePath(movieId int, fileName string) string {
+	return fmt.Sprint("http://localhost:8080", "/movies/", movieId, "/media/", fileName)
 }
 
 func writeJSON(w http.ResponseWriter, code int, data any) {

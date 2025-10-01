@@ -31,6 +31,11 @@ func (h MovieHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Create image path for frontend
+	for i, m := range movies {
+		movies[i].Poster = CreateImagePath(m.Id, m.Poster)
+	}
+
 	WriteOK(w, movies)
 }
 
@@ -48,6 +53,25 @@ func (h MovieHandler) GetById(w http.ResponseWriter, r *http.Request) {
 		WriteNotFound(w)
 		return
 	}
+
+	var medias []types.Media
+	if err := json.Unmarshal(movie.Medias, &medias); err != nil {
+		WriteServerError(w, err)
+		return
+	}
+
+	// Create image path for frontend
+	for i, m := range medias {
+		medias[i].Name = CreateImagePath(movie.Id, m.Name)
+	}
+
+	b, err := json.Marshal(medias)
+	if err != nil {
+		WriteServerError(w, err)
+		return
+	}
+
+	movie.Medias = b
 
 	WriteOK(w, movie)
 }

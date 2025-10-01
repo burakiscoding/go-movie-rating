@@ -42,11 +42,11 @@ func IsAuthenticated(next http.HandlerFunc) http.HandlerFunc {
 		substrings := strings.Split(authHeader, " ")
 
 		if len(substrings) != 2 {
-			http.Error(w, "No token", http.StatusUnauthorized)
+			WriteUnauthorized(w)
 			return
 		}
 		if substrings[0] != "Bearer" {
-			http.Error(w, "No token", http.StatusUnauthorized)
+			WriteUnauthorized(w)
 			return
 		}
 
@@ -54,7 +54,7 @@ func IsAuthenticated(next http.HandlerFunc) http.HandlerFunc {
 
 		payload, err := VerifyToken(token)
 		if err != nil {
-			http.Error(w, "Token verify error", http.StatusUnauthorized)
+			WriteUnauthorized(w)
 			return
 		}
 

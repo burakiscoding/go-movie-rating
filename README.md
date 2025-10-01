@@ -40,6 +40,11 @@ export DBPASS=<yourpassword>
 ```
 Now we need to run MySQL. If you don't have MySQL in your machine go to <a href="https://dev.mysql.com/doc/mysql-installation-excerpt/5.7/en">MySQL Installation Guide</a>
 After installing the MySQL, we need to create database for our application. Don't worry, I've already created sql scripts for initialization and seeding. Open a new terminal and move to the sql_scripts directory in our project. And run MySQL in this terminal and after that run the sql scripts.
+To run MySQL:
+```
+mysql -u root -p
+```
+And then run the scripts
 ```
 source init.sql
 source insert.sql
